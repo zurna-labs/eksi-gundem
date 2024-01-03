@@ -8,11 +8,17 @@
 <body>
     <h1>Ekşi Gündem</h1>
     <ul>
-        {% for filename, topic in context.topics.items() %}
-            <li>
-                <h2>{{ topic.title }}</h2>
+        {% for filename, topic in context.topics_list %}
+            <div>
+                <a href="{{ context.base_url }}/{{ topic.url }}">
+                    <h2>{{ topic.title }}</h2>
+                </a>
                 <details>
-                    <summary>{{ topic.summary }}</summary>
+                    <summary>
+                        {% for line in topic.summary.split('\n') %}
+                            {{ line }}<br>
+                        {% endfor %}
+                    </summary>
                     <small>{{ topic.timestamp }}</small>
                     <ul>
                         {% for entry in topic.entries %}
@@ -20,7 +26,7 @@
                         {% endfor %}
                     </ul>
                 </details>
-            </li>
+            </div>
         {% endfor %}
     </ul>
 </body>

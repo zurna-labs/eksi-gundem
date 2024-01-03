@@ -7,6 +7,9 @@ from bs4 import BeautifulSoup
 from flask import Flask, render_template
 import schedule
 import openai
+from datetime import datetime
+
+CURRENT_DATE = datetime.now().strftime('%Y-%m-%d')
 
 # Load OpenAI API key from the file
 with open('openai.apikey', 'r') as api_key_file:
@@ -17,8 +20,8 @@ app = Flask(__name__)
 BASE_EKSI_URL = "https://eksisozluk111.com"
 
 # Path to store the parsed topics
-TOPICS_PATH = "topics"
-SUMMARIES_PATH = "summaries"
+TOPICS_PATH = CURRENT_DATE + "/topics"
+SUMMARIES_PATH = CURRENT_DATE + "/summaries"
 
 if not os.path.exists(TOPICS_PATH):
     os.makedirs(TOPICS_PATH)
@@ -53,10 +56,16 @@ def parse_topic(title, url):
 
     # Save the parsed entries to a local JSON file with proper encoding and indentation
     timestamp = int(time.time())
-    json_data = {"title": title, "entries": entries, "timestamp": timestamp}
+    json_data = {
+        "title": title, 
+        "entries": entries, 
+        "timestamp": timestamp,
+        "url": url
+    }
 
     with open(filepath, "w", encoding='utf-8') as f:
         json.dump(json_data, f, ensure_ascii=False, indent=2)
+
 
 def create_summary(topic_filepath):
     with open(topic_filepath, "r", encoding='utf-8') as f:
@@ -65,7 +74,7 @@ def create_summary(topic_filepath):
     entries = topic_data["entries"]
     entry_text = topic_data["title"] + "\n"
     entry_text += "\n".join([f"- {e}" for e in entries])
-    entry_text += "\n\n Bazı insanlar bugün yukarıdaki yazıları yazmış. Anlatılmak istenenleri kısa bir paragrafla özetle. Sadece özeti yaz, kibarlık yapma. Gereksiz detay verme. Çok kısa cevap ver ve anahtar noktalara değin."
+    entry_text += "\n\n Bazı insanlar bugün yukarıdaki yazıları yazmış. Anlatılmak istenenleri kısa bir paragrafla özetle. Sadece özeti yaz, kibarlık yapma. Gereksiz detay verme. Madde madde yazma, paragraf şeklinde yaz. Çok kısa cevap ver ve anahtar noktalara değin."
 
     # Use OpenAI API for summarization
     response = openai.ChatCompletion.create(
@@ -83,7 +92,6 @@ def create_summary(topic_filepath):
         ],
         max_tokens=300
     )
-    print(response)
     summary_text = response['choices'][0]["message"]["content"]
 
     # Generate a filename for the summary based on the URL
@@ -116,10 +124,10 @@ def fetch_and_parse_topics():
         # Parse the topic
         parse_topic(title, url)
 
-    for title, url in topics:
+    for filename in os.listdir(TOPICS_PATH):
         # Check if the topic has been parsed in the last 2 hours
-        summary_filepath = os.path.join(SUMMARIES_PATH, f"{urlparse(url).path[1:].replace('/', '_')}.json")
-        topic_filepath = os.path.join(TOPICS_PATH, f"{urlparse(url).path[1:].replace('/', '_')}.json")
+        summary_filepath = os.path.join(SUMMARIES_PATH, filename)
+        topic_filepath = os.path.join(TOPICS_PATH, filename)
         if os.path.exists(summary_filepath):
             with open(filepath, "r", encoding='utf-8') as f:
                 parsed_data = json.load(f)
@@ -127,7 +135,7 @@ def fetch_and_parse_topics():
                 current_timestamp = int(time.time())
                 time_difference = current_timestamp - last_timestamp
                 if time_difference < 7200:  # 2 hours in seconds
-                    print(f"{title} has been parsed recently. Skipping.")
+                    print(f"{filename} has been summarized recently. Skipping.")
                     continue
 
         # Create a summary for the topic
@@ -137,12 +145,18 @@ def fetch_and_parse_topics():
 def index():
     topics_data = {}
     for filename in os.listdir(TOPICS_PATH):
-        with open(os.path.join(TOPICS_PATH, filename), "r", encoding='utf-8') as f:
+        topics_filepath = os.path.join(TOPICS_PATH, filename)
+        summary_filepath = os.path.join(SUMMARIES_PATH, filename)
+        with open(topics_filepath, "r", encoding='utf-8') as f:
             topic_data = json.load(f)
-        with open(os.path.join(SUMMARIES_PATH, filename), "r", encoding='utf-8') as f:
+        with open(summary_filepath, "r", encoding='utf-8') as f:
             summary_data = json.load(f)
         topics_data[filename] = {**topic_data, **summary_data}
-    context = {"topics": topics_data}
+    context = {
+        "topics": topics_data,
+        "topics_list": sorted(topics_data.items(), key=lambda k: -1*int(k[1]['title'].split()[-1])),
+        "base_url": BASE_EKSI_URL
+    }
     
     return render_template("index.html", context=context)
 
