@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ekşi Gündem</title>
+</head>
+<body>
+    <h1>Ekşi Gündem</h1>
+    <ul>
+        {% for filename, topic in context.topics.items() %}
+            <li>
+                <h2>{{ topic.title }}</h2>
+                <details>
+                    <summary>{{ topic.summary }}</summary>
+                    <small>{{ topic.timestamp }}</small>
+                    <ul>
+                        {% for entry in topic.entries %}
+                            <li>{{ entry }}</li>
+                        {% endfor %}
+                    </ul>
+                </details>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
