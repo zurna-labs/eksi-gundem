@@ -12,7 +12,8 @@
         {% for filename, topic in context.topics_list %}
             {% if topic.summary %}
             <div>
-                <a href="{{ context.base_url }}/{{ topic.url }}">
+                <!-- if check can be removed later -->
+                <a href="{%if 'https' not in topic.url %}{{ context.base_url }}/{% endif %}{{ topic.url }}">
                     <h2>{{ topic.title }}</h2>
                 </a>
                 <details>
