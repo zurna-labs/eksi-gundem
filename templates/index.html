@@ -7,6 +7,7 @@
 </head>
 <body>
     <h1>Ekşi Gündem</h1>
+    {% if context %}
     <ul>
         {% for filename, topic in context.topics_list %}
             <div>
@@ -29,5 +30,10 @@
             </div>
         {% endfor %}
     </ul>
+    {% else %}
+
+    404, 500 cart curt
+
+    {% endif %}
 </body>
 </html>
