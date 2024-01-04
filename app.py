@@ -130,15 +130,18 @@ def create_summary(base_url, topic_filepath, summaries_path):
     summary_filename = os.path.basename(topic_filepath)
     summary_filepath = os.path.join(summaries_path, summary_filename)
 
-    # added
-    summary_text = Summarizer(openai, log).summarize(title, entries)
-
-    # # Save the summary to a local JSON file with proper encoding and indentation
     timestamp = int(time.time())
-    summary_data = {"title": topic_data["title"], "summary": summary_text, "timestamp": timestamp}
 
+    summary_text = Summarizer(openai, log).summarize(title, entries)
+    if '>>skip<<' in summary_text:
+        log("- Not gündem, skip")
+        summary_data = {"title": topic_data["title"], "summary": '>>SKIP<<', "timestamp": timestamp}
+    else:
+        log("- Summary created for " + topic_data["title"])
+        summary_data = {"title": topic_data["title"], "summary": summary_text, "timestamp": timestamp}
+
+    # Save the summary to a local JSON file with proper encoding and indentation
     save_to_json(summary_filepath, summary_data)
-    log("- Summary created for " + topic_data["title"])
 
 
 def fetch_and_parse_topics(base_url, topics_path, summaries_path):
@@ -192,6 +195,8 @@ def load_topics_and_summaries(topics_path, summaries_path):
             topic_data = json.load(f)
         with open(summary_filepath, "r", encoding='utf-8') as f:
             summary_data = json.load(f)
+        if summary_data['summary'] == '>>SKIP<<':
+            continue
         topics_data[filename] = {**topic_data, **summary_data}
     return topics_data
 

@@ -2,13 +2,18 @@ import tiktoken
 
 class Summarizer:
 
-    def __init__(self, openai_client, log):
+    def __init__(self, openai_client, log, skip_goofy=True):
         self.model = 'gpt-3.5-turbo'
         self.token_encoding = "cl100k_base"
-        self.summarization_prompt = "\n\Yazılanları en fazla 3 cümlede özetle."
+        self.summarization_prompt = "\n\Eğer yazılanlar güncel bir olay ile ilgili ise yazılanları en fazla 3 cümlede özetle."
         self.model_token_limit = 4000
         self.log = log
         self.openai_client = openai_client
+
+        if skip_goofy:
+            self.summarization_prompt += \
+            "Eğer konu güncel bir olay ile ilgili değilse ve sohbet amaçlıysa sadece ve sadece ``>>skip<<` yaz." 
+            
 
     def num_tokens_from_string(self, string: str) -> int:
         encoding = tiktoken.get_encoding(self.token_encoding)
