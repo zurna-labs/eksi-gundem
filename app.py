@@ -1,16 +1,17 @@
 import os
 import time
 import json
-from urllib.parse import urlparse, urljoin
-import subprocess
+import openai
+import schedule
+import requests
+import threading
+
 from bs4 import BeautifulSoup
 from flask import Flask, render_template
-import schedule
-import openai
-from datetime import datetime
-import threading
 from logger import Logger
+from datetime import datetime
 from summarizer import Summarizer
+from urllib.parse import urlparse, urljoin
 
 global CONTEXT
 CONTEXT = None
@@ -54,11 +55,22 @@ def initialize_directories():
     return TOPICS_PATH, SUMMARIES_PATH
 
 def fetch_html_content(url):
-    log('+ Curl....')
-    curl_command = f"curl '{url}' "
-    result = subprocess.check_output(curl_command, stderr=subprocess.DEVNULL, shell=True).decode('utf-8')
-    log('- Curl complete')
-    return result
+    log('+ Requesting....')
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an HTTPError for bad responses
+        content = response.text
+        log('- Request complete')
+        return content
+    except requests.exceptions.RequestException as e:
+        log(f'- Error during request: {e}')
+        return None
 
 def parse_soup(response):
     return BeautifulSoup(response, "html.parser")
