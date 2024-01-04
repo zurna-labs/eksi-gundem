@@ -10,6 +10,7 @@
     {% if context %}
     <ul>
         {% for filename, topic in context.topics_list %}
+            {% if topic.summary %}
             <div>
                 <a href="{{ context.base_url }}/{{ topic.url }}">
                     <h2>{{ topic.title }}</h2>
@@ -28,6 +29,11 @@
                     </ul>
                 </details>
             </div>
+            {% else %}
+            <err hidden>
+                {{ topic.title }}
+            </err>
+            {% endif %}
         {% endfor %}
     </ul>
     {% else %}
