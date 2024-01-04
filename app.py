@@ -51,11 +51,9 @@ class Summarizer:
         summarized_at_least_once = False
 
         while entries_stack or summaries_stack:
-            # log("> Stack length: " + str(len(entries_stack + summaries_stack)))
             entry = entries_stack.pop() if entries_stack else summaries_stack.pop()
             current_token_count = self.num_tokens_from_string(current_text_body)
             new_token_count = self.num_tokens_from_string(entry)
-            log('', prompt_token_count, current_token_count, new_token_count)
             if not entry or entry == "görsel" or entry == "görselgörsel":
                 continue
             if new_token_count + prompt_token_count > self.model_token_limit:
@@ -276,21 +274,25 @@ def populate_context(topics_path, summaries_path):
 def processing_routine():
     topics_path, summaries_path = initialize_directories()
 
+    populate_context(topics_path, summaries_path)
+
     fetch_and_parse_topics(BASE_EKSI_URL, topics_path, summaries_path)
 
     populate_context(topics_path, summaries_path)
 
-# def schedule_topic_fetching(fetch_and_parse_topics_func):
+def schedule_topic_fetching(fetch_and_parse_topics_func):
     # Run fetch_and_parse_topics once before scheduling
-    # fetch_and_parse_topics_func()
+    fetch_and_parse_topics_func()
 
-    # # Schedule the topic fetching task
-    # schedule.every(24).hours.do(fetch_and_parse_topics_func)
+    time.sleep(60)
 
-    # # Periodically check for new topics
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(60)
+    # Schedule the topic fetching task
+    schedule.every(24).hours.do(fetch_and_parse_topics_func)
+
+    # Periodically check for new topics
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
 
 
 ############################################ FLASK ################################################
@@ -299,8 +301,8 @@ def processing_routine():
 openai.api_key = load_openai_api_key()
 
 # Topic processing thread
-# threading.Thread(target=schedule_topic_fetching, args=(processing_routine,)).start()
-processing_routine()
+threading.Thread(target=schedule_topic_fetching, args=(processing_routine,)).start()
+# processing_routine()
 
 app = Flask(__name__)
 
@@ -308,6 +310,6 @@ app = Flask(__name__)
 def index():
     return render_template("index.html", context=CONTEXT)
 
-app.run(debug=True)
+app.run(debug=False)
 
 
