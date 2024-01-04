@@ -77,22 +77,26 @@ def create_summary(topic_filepath):
     entry_text += "\n\n Bazı insanlar bugün yukarıdaki yazıları yazmış. Anlatılmak istenenleri kısa bir paragrafla özetle. Sadece özeti yaz, kibarlık yapma. Gereksiz detay verme. Madde madde yazma, paragraf şeklinde yaz. Çok kısa cevap ver ve anahtar noktalara değin."
 
     # Use OpenAI API for summarization
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type":"text",
-                        "text":entry_text
-                    }
-                ]
-            }
-        ],
-        max_tokens=300
-    )
-    summary_text = response['choices'][0]["message"]["content"]
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type":"text",
+                            "text":entry_text
+                        }
+                    ]
+                }
+            ],
+            max_tokens=300
+        )
+        summary_text = response['choices'][0]["message"]["content"]
+    except:
+        print("Problem!")
+        return
 
     # Generate a filename for the summary based on the URL
     summary_filename = os.path.basename(topic_filepath)
@@ -144,7 +148,7 @@ def fetch_and_parse_topics():
 @app.route("/")
 def index():
     topics_data = {}
-    for filename in os.listdir(TOPICS_PATH):
+    for filename in os.listdir(SUMMARIES_PATH):
         topics_filepath = os.path.join(TOPICS_PATH, filename)
         summary_filepath = os.path.join(SUMMARIES_PATH, filename)
         with open(topics_filepath, "r", encoding='utf-8') as f:
