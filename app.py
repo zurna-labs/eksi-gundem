@@ -124,13 +124,14 @@ def create_summary(base_url, topic_filepath, summaries_path):
         topic_data = json.load(f)
 
     entries = topic_data["entries"]
+    title = topic_data["title"]
 
     # # Generate a filename for the summary based on the URL
     summary_filename = os.path.basename(topic_filepath)
     summary_filepath = os.path.join(summaries_path, summary_filename)
 
     # added
-    summary_text = Summarizer(openai, log).summarize(entries)
+    summary_text = Summarizer(openai, log).summarize(title, entries)
 
     # # Save the summary to a local JSON file with proper encoding and indentation
     timestamp = int(time.time())

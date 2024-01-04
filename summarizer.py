@@ -15,13 +15,13 @@ class Summarizer:
         num_tokens = len(encoding.encode(string))
         return num_tokens
 
-    def summarize(self, entries):
+    def summarize(self, title, entries):
 
         prompt_token_count = self.num_tokens_from_string(self.summarization_prompt)
 
         entries_stack = list(entries)
         summaries_stack = []
-        current_text_body = ""
+        current_text_body = title
 
         summarized_at_least_once = False
 
