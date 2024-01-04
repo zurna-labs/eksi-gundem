@@ -2,12 +2,13 @@ import tiktoken
 
 class Summarizer:
 
-    def __init__(self, log):
+    def __init__(self, openai_client, log):
         self.model = 'gpt-3.5-turbo'
         self.token_encoding = "cl100k_base"
-        self.summarization_prompt = "\n\nYukarıda yazılanları en fazla 3 cümlede özetle."
+        self.summarization_prompt = "\n\Yazılanları en fazla 3 cümlede özetle."
         self.model_token_limit = 4000
         self.log = log
+        self.openai_client = openai_client
 
     def num_tokens_from_string(self, string: str) -> int:
         encoding = tiktoken.get_encoding(self.token_encoding)
@@ -54,7 +55,7 @@ class Summarizer:
         self.log('+ Calling OpenAI -- ')
         # Use OpenAI API for summarization
         try:
-            response = openai.ChatCompletion.create(
+            response = self.openai_client.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {

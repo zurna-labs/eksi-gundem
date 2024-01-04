@@ -130,7 +130,7 @@ def create_summary(base_url, topic_filepath, summaries_path):
     summary_filepath = os.path.join(summaries_path, summary_filename)
 
     # added
-    summary_text = Summarizer(log).summarize(entries)
+    summary_text = Summarizer(openai, log).summarize(entries)
 
     # # Save the summary to a local JSON file with proper encoding and indentation
     timestamp = int(time.time())
