@@ -12,6 +12,7 @@ from logger import Logger
 from datetime import datetime
 from summarizer import Summarizer
 from urllib.parse import urlparse, urljoin
+from utils.string_utils import split_entry_count_from_title
 
 global CONTEXT
 CONTEXT = None
@@ -36,7 +37,7 @@ def load_openai_api_key():
     with open('openai.apikey', 'r') as api_key_file:
         api_key = api_key_file.read()
     log_main('- Loaded OpenAI API key')
-    return api_key
+    return api_key.rstrip()
 
 
 def initialize_directories():
@@ -59,7 +60,6 @@ def fetch_html_content(url):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'en-US,en;q=0.9',
     }
     try:
@@ -86,14 +86,12 @@ def fetch_topics_of_the_day(base_url):
     soup = parse_soup(response)
 
     topic_list = soup.find("ul", class_="topic-list partial")
-    topics = [(topic.text, topic["href"]) for topic in topic_list.find_all("a")]
+    topics = [(topic.text, topic["href"].split('?')[0]) for topic in topic_list.find_all("a")]
 
     log('- Fetching complete')
     return topics
 
-def parse_topic(base_url, title, endpoint, topics_path):
-    log('+ Parsing topic: ' + title)
-    url = urljoin(base_url, endpoint)
+def get_entries(url):
     response = fetch_html_content(url)
     soup = parse_soup(response)
 
@@ -101,17 +99,31 @@ def parse_topic(base_url, title, endpoint, topics_path):
     for entry in soup.find_all("li", id="entry-item"):
         text = entry.find("div", class_="content").text.strip()
         entries.append(text)
+    return entries
+
+
+def parse_topic(base_url, title, endpoint, topics_path):
+    log('+ Parsing topic: ' + title)
+
+    url = urljoin(base_url, endpoint)
+    entries_last = get_entries(urljoin(url, "?a=popular"))
+    entries_best = get_entries(urljoin(url, "?a=dailynice"))
+
+    entries = list(dict.fromkeys([*entries_last[:1],  *entries_best, *entries_last[1:]]))
 
     # Generate a filename based on the URL
     parsed_url = urlparse(url)
     filename = f"{parsed_url.path[1:].replace('/', '_')}.json"
     filepath = os.path.join(topics_path, filename)
 
+    title, total_entry_count = split_entry_count_from_title(title)
+
     # Save the parsed entries to a local JSON file with proper encoding and indentation
     timestamp = int(time.time())
     json_data = {
-        "title": title, 
-        "entries": entries, 
+        "title": title,
+        "total_entry_count": total_entry_count,
+        "entries": entries,
         "timestamp": timestamp,
         "url": endpoint
     }
@@ -133,6 +145,10 @@ def create_summary(base_url, topic_filepath, summaries_path):
     timestamp = int(time.time())
 
     summary_text = Summarizer(openai, log).summarize(title, entries)
+
+    if summary_text is None:
+        raise Exception("summary_text is None")
+
     if '>>skip<<' in summary_text:
         log("- Not gündem, skip")
         summary_data = {"title": topic_data["title"], "summary": '>>SKIP<<', "timestamp": timestamp}
@@ -144,21 +160,17 @@ def create_summary(base_url, topic_filepath, summaries_path):
     save_to_json(summary_filepath, summary_data)
 
 
-def fetch_and_parse_topics(base_url, topics_path, summaries_path):
+def fetch_and_parse_topics(base_url, topics_path, summaries_path, request_limit = 10):
     log('+ Parse topics ...')
     topics = fetch_topics_of_the_day(base_url)
     for title, url in topics:
         # Check if the topic has been parsed in the last 2 hours
         filepath = os.path.join(topics_path, f"{urlparse(url).path[1:].replace('/', '_')}.json")
         if os.path.exists(filepath):
-            with open(filepath, "r", encoding='utf-8') as f:
-                parsed_data = json.load(f)
-                last_timestamp = parsed_data.get("timestamp", 0)
-                current_timestamp = int(time.time())
-                time_difference = current_timestamp - last_timestamp
-                if time_difference < 7200:  # 2 hours in seconds
-                    # log(f"{title} has been parsed recently. Skipping.")
-                    continue
+            parsed_data = json.load(open(filepath, "r", encoding='utf-8'))
+            if int(time.time()) - parsed_data.get("timestamp", 0) < 7200:  # 2 hours in seconds
+                log(f"{title} has been parsed recently. Skipping.")
+                continue
 
         # Parse the topic
         parse_topic(base_url, title, url, topics_path)
@@ -171,16 +183,14 @@ def fetch_and_parse_topics(base_url, topics_path, summaries_path):
         summary_filepath = os.path.join(summaries_path, filename)
         topic_filepath = os.path.join(topics_path, filename)
         if os.path.exists(summary_filepath):
-            with open(filepath, "r", encoding='utf-8') as f:
-                parsed_data = json.load(f)
-                last_timestamp = parsed_data.get("timestamp", 0)
-                current_timestamp = int(time.time())
-                time_difference = current_timestamp - last_timestamp
-                if time_difference < 7200:  # 2 hours in seconds
-                    # log(f"{filename} has been summarized recently. Skipping.")
-                    continue
+            parsed_data = json.load(open(filepath, "r", encoding='utf-8'))
+            if int(time.time()) - parsed_data.get("timestamp", 0) < 7200:   # 2 hours in seconds
+                log(f"{filename} has been summarized recently. Skipping.")
+                continue
 
-        # Create a summary for the topic
+        if request_limit <= 0:
+            break
+        request_limit-=1
         create_summary(base_url, topic_filepath, summaries_path)
     log('- Parse and summarize complete')
 
@@ -203,7 +213,7 @@ def load_topics_and_summaries(topics_path, summaries_path):
 def populate_context(topics_path, summaries_path):
 
     topics_data = load_topics_and_summaries(topics_path, summaries_path)
-    topics_list = sorted(topics_data.items(), key=lambda k: -1*int(k[1]['title'].split()[-1]))
+    topics_list = sorted(topics_data.items(), key=lambda k: -1*(k[1]['total_entry_count'] or 0))
 
     with LOCK:
         global CONTEXT
@@ -217,7 +227,12 @@ def processing_routine():
 
     populate_context(topics_path, summaries_path)
 
-    fetch_and_parse_topics(BASE_EKSI_URL, topics_path, summaries_path)
+    try:
+        print('call fetch_and_parse_topics from processing_routine')
+        fetch_and_parse_topics(BASE_EKSI_URL, topics_path, summaries_path, 3)
+        pass
+    except Exception as e:
+        log(f"Exception occurred in fetch_and_parse_topics: {e}")
 
     populate_context(topics_path, summaries_path)
 
@@ -240,9 +255,10 @@ def schedule_topic_fetching(fetch_and_parse_topics_func):
 
 # Initialization
 openai.api_key = load_openai_api_key()
+processing_routine()
 
 # Topic processing thread
-threading.Thread(target=schedule_topic_fetching, args=(processing_routine,)).start()
+#threading.Thread(target=schedule_topic_fetching, args=(processing_routine,)).start()
 # processing_routine()
 
 app = Flask(__name__)
@@ -252,5 +268,3 @@ def index():
     return render_template("index.html", context=CONTEXT)
 
 app.run(debug=False)
-
-

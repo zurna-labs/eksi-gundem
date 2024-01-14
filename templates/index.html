@@ -4,17 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ekşi Gündem</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}"">
 </head>
-<body style='background-color: lightyellow;'>
+<body>
     <h1>Ekşi Gündem</h1>
     {% if context %}
-    <ul>
+    <div>
         {% for filename, topic in context.topics_list %}
             {% if topic.summary %}
-            <div>
-                <!-- if check can be removed later -->
-                <a href="{%if 'https' not in topic.url %}{{ context.base_url }}/{% endif %}{{ topic.url }}">
+            <div class="topic-container">
+                <a class="topic-title" href="{%if 'https' not in topic.url %}{{ context.base_url }}/{% endif %}{{ topic.url }}">
                     <h2>{{ topic.title }}</h2>
+                    <span class="entry-count">{{ topic.total_entry_count }} entries</span>
                 </a>
                 <details>
                     <summary>
@@ -36,7 +37,7 @@
             </err>
             {% endif %}
         {% endfor %}
-    </ul>
+    </div>
     {% else %}
 
     404, 500 cart curt
