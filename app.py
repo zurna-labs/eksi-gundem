@@ -13,15 +13,20 @@ from datetime import datetime
 from summarizer import Summarizer
 from urllib.parse import urlparse, urljoin
 from utils.string_utils import split_entry_count_from_title
+from dotenv import load_dotenv
+
+# Configuration
+load_dotenv()
+NUM_ENTRIES_DEFAULT = int(os.environ.get('NUM_ENTRIES_INIT', 10))
+NUM_ENTRIES = NUM_ENTRIES_DEFAULT
+BASE_EKSI_URL = os.environ.get('BASE_URL')
 
 global CONTEXT
 CONTEXT = None
-NUM_ENTRIES = 10
+
 # Create a lock
 LOCK = threading.Lock()
 
-# Configuration
-BASE_EKSI_URL = "https://eksisozluk111.com"
 
 log = Logger().log
 log_main = Logger().log
@@ -255,17 +260,16 @@ def schedule_topic_fetching(fetch_and_parse_topics_func):
 
 # Initialization
 openai.api_key = load_openai_api_key()
-processing_routine()
 
 # Topic processing thread
-#threading.Thread(target=schedule_topic_fetching, args=(processing_routine,)).start()
+threading.Thread(target=schedule_topic_fetching, args=(processing_routine,)).start()
 # processing_routine()
 
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    NUM_ENTRIES = request.args.get('num_entries', default=10, type=int)
+    NUM_ENTRIES = request.args.get('num_entries', default=NUM_ENTRIES_DEFAULT, type=int)
     return render_template("index.html", context=CONTEXT, num_entries = NUM_ENTRIES)
 
-app.run(debug=False)
+app.run(debug=(os.environ.get('FLASK_DEBUG', 'False') == 'True'))
