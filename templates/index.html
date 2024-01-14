@@ -8,6 +8,15 @@
 </head>
 <body>
     <h1>Ekşi Gündem</h1>
+    <!-- Dropdown form for selecting number of entries -->
+    <form action="{{ url_for('index') }}" method="get">
+        <label for="num-entries">Number of Entries:</label>
+        <select name="num_entries" id="num-entries" onchange="this.form.submit()">
+            <option value="5" {% if num_entries == 5 %}selected{% endif %}>5</option>
+            <option value="10" {% if num_entries == 10 %}selected{% endif %}>10</option>
+            <option value="20" {% if num_entries == 20 %}selected{% endif %}>20</option>
+        </select>
+    </form>
     {% if context %}
     <div>
         {% for filename, topic in context.topics_list %}
@@ -25,7 +34,7 @@
                     </summary>
                     <small>{{ topic.timestamp }}</small>
                     <ul>
-                        {% for entry in topic.entries %}
+                        {% for entry in topic.entries[:num_entries] %}
                             <li>{{ entry }}</li>
                         {% endfor %}
                     </ul>

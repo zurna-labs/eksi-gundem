@@ -7,7 +7,7 @@ import requests
 import threading
 
 from bs4 import BeautifulSoup
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from logger import Logger
 from datetime import datetime
 from summarizer import Summarizer
@@ -16,7 +16,7 @@ from utils.string_utils import split_entry_count_from_title
 
 global CONTEXT
 CONTEXT = None
-
+NUM_ENTRIES = 10
 # Create a lock
 LOCK = threading.Lock()
 
@@ -265,6 +265,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return render_template("index.html", context=CONTEXT)
+    NUM_ENTRIES = request.args.get('num_entries', default=10, type=int)
+    return render_template("index.html", context=CONTEXT, num_entries = NUM_ENTRIES)
 
 app.run(debug=False)
