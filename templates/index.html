@@ -4,17 +4,27 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ekşi Gündem</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}"">
 </head>
-<body style='background-color: lightyellow;'>
+<body>
     <h1>Ekşi Gündem</h1>
+    <!-- Dropdown form for selecting number of entries -->
+    <form action="{{ url_for('index') }}" method="get">
+        <label for="num-entries">Number of Entries:</label>
+        <select name="num_entries" id="num-entries" onchange="this.form.submit()">
+            <option value="5" {% if num_entries == 5 %}selected{% endif %}>5</option>
+            <option value="10" {% if num_entries == 10 %}selected{% endif %}>10</option>
+            <option value="20" {% if num_entries == 20 %}selected{% endif %}>20</option>
+        </select>
+    </form>
     {% if context %}
-    <ul>
+    <div>
         {% for filename, topic in context.topics_list %}
             {% if topic.summary %}
-            <div>
-                <!-- if check can be removed later -->
-                <a href="{%if 'https' not in topic.url %}{{ context.base_url }}/{% endif %}{{ topic.url }}">
+            <div class="topic-container">
+                <a class="topic-title" href="{%if 'https' not in topic.url %}{{ context.base_url }}/{% endif %}{{ topic.url }}">
                     <h2>{{ topic.title }}</h2>
+                    <span class="entry-count">{{ topic.total_entry_count }} entries</span>
                 </a>
                 <details>
                     <summary>
@@ -24,7 +34,7 @@
                     </summary>
                     <small>{{ topic.timestamp }}</small>
                     <ul>
-                        {% for entry in topic.entries %}
+                        {% for entry in topic.entries[:num_entries] %}
                             <li>{{ entry }}</li>
                         {% endfor %}
                     </ul>
@@ -36,7 +46,7 @@
             </err>
             {% endif %}
         {% endfor %}
-    </ul>
+    </div>
     {% else %}
 
     404, 500 cart curt
