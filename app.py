@@ -233,7 +233,7 @@ def processing_routine():
     populate_context(topics_path, summaries_path)
 
     try:
-        print('call fetch_and_parse_topics from processing_routine')
+        log('Call fetch_and_parse_topics from processing_routine')
         fetch_and_parse_topics(BASE_EKSI_URL, topics_path, summaries_path, 3)
         pass
     except Exception as e:
