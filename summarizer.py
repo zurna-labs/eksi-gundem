@@ -12,8 +12,8 @@ class Summarizer:
 
         if skip_goofy:
             self.summarization_prompt += \
-            "Eğer konu güncel bir olay ile ilgili değilse ve sohbet amaçlıysa sadece ve sadece ``>>skip<<` yaz." 
-            
+            "Eğer konu güncel bir olay ile ilgili değilse ve sohbet amaçlıysa sadece ve sadece ``>>skip<<` yaz."
+
 
     def num_tokens_from_string(self, string: str) -> int:
         encoding = tiktoken.get_encoding(self.token_encoding)
