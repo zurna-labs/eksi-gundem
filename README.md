@@ -1,5 +1,7 @@
 # Eksi Gundem
 
+Live on <https://eksigundem.com>
+
 ## Setup
 
 ### Save your openai api key to a local file
