@@ -2,7 +2,7 @@ import tiktoken
 
 class Summarizer:
 
-    def __init__(self, openai_client, log, skip_goofy=True):
+    def __init__(self, openai_client, log, skip_goofy=False):
         self.model = 'gpt-3.5-turbo'
         self.token_encoding = "cl100k_base"
         self.summarization_prompt = "\n\Eğer yazılanlar güncel bir olay ile ilgili ise yazılanları en fazla 3 cümlede özetle."
