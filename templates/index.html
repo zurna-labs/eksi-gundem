@@ -10,7 +10,7 @@
 <body>
     <h1>Ekşi Gündem</h1>
     <!-- Dropdown form for selecting number of entries -->
-    <form action="{{ url_for('index') }}" method="get">
+    <form class="topic-container num-of-entries-class" action="{{ url_for('index') }}" method="get">
         <label for="num-entries">Number of Entries:</label>
         <select name="num_entries" id="num-entries" onchange="this.form.submit()">
             <option value="5" {% if num_entries == 5 %}selected{% endif %}>5</option>
